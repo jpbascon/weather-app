@@ -1,12 +1,15 @@
 FROM php:8.2-cli
 
-# Install system dependencies
+# Install system dependencies and Node for Vite
 RUN apt-get update && apt-get install -y \
   unzip \
   git \
+  curl \
   libzip-dev \
   libsqlite3-dev \
   && docker-php-ext-install zip pdo pdo_sqlite \
+  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y nodejs \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
@@ -18,9 +21,10 @@ WORKDIR /app
 # Copy project files
 COPY . .
 
-# Install PHP dependencies (NO config:cache here!)
-RUN composer install --no-dev --optimize-autoloader
+# Install PHP & JS dependencies and build assets
+RUN composer install --no-dev --optimize-autoloader \
+  && npm install \
+  && npm run build
 
 # Expose Render's $PORT and start Laravel
-# Config caching will happen at runtime automatically if needed
 CMD php artisan serve --host 0.0.0.0 --port $PORT
